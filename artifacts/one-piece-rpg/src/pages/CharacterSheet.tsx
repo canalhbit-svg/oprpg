@@ -30,121 +30,178 @@ const defaultChar: CharacterInput = {
   logbook: "",
   xpLog: [],
   inventory: [],
-  currentStamina: 0,
-  haki: null,
+  specialtyKit: [],
   devilFruit: null,
+  hakiTypes: [],
+  ship: null,
+  background: "",
+  goals: "",
+  allies: "",
+  enemies: "",
+  equipment: "",
+  treasures: "",
+  notes: "",
 };
 
 export default function CharacterSheet() {
-  const { data: serverChar, isLoading } = useGetCharacter({ query: { retry: false } });
-  const saveMutation = useSaveCharacter();
+  const [character, setCharacter] = useState<CharacterInput>(defaultChar);
+  const [activeTab, setActiveTab] = useState("identity");
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const [localChar, setLocalChar] = useState<CharacterInput | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const prevSpecialty = useRef<string>("");
+  const { data: serverCharacter, isLoading: isLoadingCharacter } = useGetCharacter();
+  const saveCharacter = useSaveCharacter();
 
   useEffect(() => {
-    if (!localChar && !isLoading) {
-      const base = serverChar || defaultChar;
-      setLocalChar({ ...defaultChar, ...base, inventory: base.inventory ?? [] });
-      prevSpecialty.current = (serverChar?.specialty ?? "");
+    if (serverCharacter) {
+      setCharacter(serverCharacter);
+      setLastSaved(new Date());
     }
-  }, [serverChar, isLoading, localChar]);
+  }, [serverCharacter]);
 
-  const debouncedSave = useDebounceCallback((charToSave: CharacterInput) => {
-    setIsSaving(true);
-    saveMutation.mutate(
-      { data: charToSave },
-      { onSettled: () => setTimeout(() => setIsSaving(false), 1000) }
-    );
-  }, 1500);
-
-  const handleChange = (updates: Partial<CharacterInput>) => {
-    if (!localChar) return;
-    let updated = { ...localChar, ...updates };
-
-    // Auto-assign starter kit when specialty changes
-    if (updates.specialty && updates.specialty !== prevSpecialty.current) {
-      const kit = SPECIALTY_STARTER_KITS[updates.specialty];
-      if (kit) {
-        const currentInventory: InventoryItem[] = Array.isArray(updated.inventory) ? updated.inventory : [];
-        // Remove old starter kit (any item whose id starts with "starter-")
-        const withoutOldKit = currentInventory.filter(i => !i.id.startsWith("starter-"));
-        const newKit: InventoryItem = { ...kit, id: `starter-${generateId()}` };
-        updated = { ...updated, inventory: [newKit, ...withoutOldKit] };
-      }
-      prevSpecialty.current = updates.specialty;
+  const debouncedSave = useDebounceCallback(async (char: CharacterInput) => {
+    setIsLoading(true);
+    setSaveStatus("Salvando...");
+    
+    try {
+      await saveCharacter.mutateAsync(char);
+      setSaveStatus("Salvo!");
+      setLastSaved(new Date());
+      
+      setTimeout(() => {
+        setSaveStatus("");
+      }, 2000);
+    } catch (error) {
+      setSaveStatus("Erro ao salvar!");
+      setTimeout(() => {
+        setSaveStatus("");
+      }, 3000);
+    } finally {
+      setIsLoading(false);
     }
+  }, 1000);
 
-    setLocalChar(updated);
-    debouncedSave(updated);
+  const updateCharacter = (updates: Partial<CharacterInput>) => {
+    const newCharacter = { ...character, ...updates };
+    setCharacter(newCharacter);
+    debouncedSave(newCharacter);
   };
 
-  if (isLoading || !localChar) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Calculate available XP
-  let xpSpent = 0;
-  const attributes: AttributeKey[] = ['vigor', 'agility', 'cunning', 'charisma', 'spirit'];
-  attributes.forEach(attr => {
-    const pool = localChar[attr]?.dicePool;
-    if (pool) {
-      xpSpent += (pool.d4 * DICE_COSTS.d4) + (pool.d6 * DICE_COSTS.d6) + (pool.d10 * DICE_COSTS.d10) + (pool.d20 * DICE_COSTS.d20);
-    }
-  });
-  const xpAvailable = (4 + localChar.xpTotal) - xpSpent;
+  const tabs = [
+    { id: "identity", label: "Identidade", icon: "👤" },
+    { id: "attributes", label: "Atributos", icon: "⚔️" },
+    { id: "combat", label: "Combate", icon: "⚡" },
+    { id: "xp", label: "Experiência", icon: "⭐" },
+    { id: "inventory", label: "Inventário", icon: "🎒" },
+    { id: "logbook", label: "Diário", icon: "📖" },
+  ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20 relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-6xl mx-auto"
+        >
+          <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-500/20 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                  <span>⚓️</span>
+                  Ficha de Personagem
+                  <span>🏴‍☠️</span>
+                </h1>
+                <div className="flex items-center gap-4">
+                  {saveStatus && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-white text-sm font-medium"
+                    >
+                      {saveStatus}
+                    </motion.div>
+                  )}
+                  {lastSaved && (
+                    <div className="text-white/80 text-xs">
+                      Salvo: {lastSaved.toLocaleTimeString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
-      {/* Auto-save indicator */}
-      <AnimatePresence>
-        {isSaving && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur border border-primary/50 text-primary px-4 py-2 rounded-full flex items-center shadow-lg shadow-primary/20"
-          >
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            <span className="text-sm font-bold tracking-wider">Salvando...</span>
-          </motion.div>
-        )}
-        {!isSaving && saveMutation.isSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-4 right-4 z-50 bg-green-950/80 backdrop-blur border border-green-500/50 text-green-400 px-4 py-2 rounded-full flex items-center shadow-lg"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            <span className="text-sm font-bold tracking-wider">Salvo</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="p-6">
+              <div className="flex flex-wrap gap-2 mb-6">
+                {tabs.map((tab) => (
+                  <motion.button
+                    key={tab.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      activeTab === tab.id
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/25"
+                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                    }`}
+                  >
+                    <span className="mr-2">{tab.icon}</span>
+                    {tab.label}
+                  </motion.button>
+                ))}
+              </div>
 
-      <IdentitySection character={localChar} onChange={handleChange} />
-      <XPSection character={localChar} onChange={handleChange} />
-      <AttributesSection character={localChar} onChange={handleChange} xpAvailable={xpAvailable} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <CombatSection character={localChar} onChange={handleChange} />
-        </div>
-        <div className="lg:col-span-1">
-          <XPLogSection log={localChar.xpLog} />
-        </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {activeTab === "identity" && (
+                    <IdentitySection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                  {activeTab === "attributes" && (
+                    <AttributesSection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                  {activeTab === "combat" && (
+                    <CombatSection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                  {activeTab === "xp" && (
+                    <XPSection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                  {activeTab === "inventory" && (
+                    <InventorySection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                  {activeTab === "logbook" && (
+                    <LogbookSection
+                      character={character}
+                      updateCharacter={updateCharacter}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
       </div>
-
-      <InventorySection character={localChar} onChange={handleChange} />
-
-      <LogbookSection character={localChar} onChange={handleChange} />
     </div>
   );
 }
