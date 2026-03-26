@@ -76,6 +76,8 @@
   },
   "dependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.60.0",
+    "firebase": "^12.11.0",
+    "firebase-admin": "^13.7.0",
     "rollup": "^4.60.0",
     "usehooks-ts": "^3.1.1"
   }

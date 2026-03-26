@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para usuários autenticados
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Regras para personagens
+    match /characters/{characterId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regras para navios
+    match /ships/{shipId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regras para mercado (apenas leitura para todos)
+    match /mercado/{itemId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'canalhbit@gmail.com';
+    }
+    
+    // Regras para especialidades (apenas leitura para todos)
+    match /especialidades/{espId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'canalhbit@gmail.com';
+    }
+    
+    // Regras para Akuma no Mi (apenas leitura para todos)
+    match /akuma_no_mi/{akumaId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'canalhbit@gmail.com';
+    }
+    
+    // Regras para Hakis (apenas leitura para todos)
+    match /hakis/{hakiId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'canalhbit@gmail.com';
+    }
+    
+    // Regras para sessões de jogo (apenas mestre pode criar/modificar)
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.email == 'canalhbit@gmail.com';
+    }
+  }
+}

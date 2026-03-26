@@ -2,18 +2,28 @@ import { Switch, Route, Router as WouterRouter, Link, useLocation } from "wouter
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import CharacterSheet from "@/pages/CharacterSheet";
 import ShipSheet from "@/pages/ShipSheet";
 import MarketPage from "@/pages/MarketPage";
 import PowersPage from "@/pages/PowersPage";
+import LoginPage from "@/pages/LoginPage";
+import MasterPanel from "@/pages/MasterPanel";
 import NotFound from "@/pages/not-found";
-import { ScrollText, Ship as ShipIcon, ShoppingBag, Flame } from "lucide-react";
+import { ScrollText, Ship as ShipIcon, ShoppingBag, Flame, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const queryClient = new QueryClient();
 
-function Navigation() {
+function Navigation({ user, isMaster, onLogout }: { user: any; isMaster: boolean; onLogout: () => void }) {
   const [location] = useLocation();
+
+  if (isMaster) {
+    return null; // MasterPanel has its own navigation
+  }
 
   const tabs = [
     { href: "/", label: "PERSONAGEM", icon: ScrollText },
@@ -43,6 +53,9 @@ function Navigation() {
               </button>
             </Link>
           ))}
+          <Button onClick={onLogout} variant="ghost" size="sm" className="ml-2">
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </nav>
@@ -50,6 +63,49 @@ function Navigation() {
 }
 
 function Router() {
+  const [user, setUser] = useState<any>(null);
+  const [isMaster, setIsMaster] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsMaster(user?.email === 'canalhbit@gmail.com');
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const handleLogin = (loggedInUser: any, master: boolean) => {
+    setUser(loggedInUser);
+    setIsMaster(master);
+  };
+
+  const handleLogout = async () => {
+    setUser(null);
+    setIsMaster(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  if (isMaster) {
+    return <MasterPanel user={user} onLogout={handleLogout} />;
+  }
+
   return (
     <div className="min-h-screen relative font-sans">
       <img
@@ -58,7 +114,7 @@ function Router() {
         className="fixed inset-0 w-full h-full object-cover opacity-20 pointer-events-none z-0 mix-blend-overlay"
       />
 
-      <Navigation />
+      <Navigation user={user} isMaster={isMaster} onLogout={handleLogout} />
 
       <main className="relative z-10 p-4 sm:p-6 lg:p-8">
         <Switch>
