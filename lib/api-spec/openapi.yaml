@@ -1,0 +1,600 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: One Piece RPG Character Sheet API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: character
+    description: Character sheet operations
+  - name: ship
+    description: Ship (crew) operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /character:
+    get:
+      operationId: getCharacter
+      tags: [character]
+      summary: Get character sheet
+      responses:
+        "200":
+          description: Character sheet data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: saveCharacter
+      tags: [character]
+      summary: Save character sheet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CharacterInput"
+      responses:
+        "200":
+          description: Saved character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+
+  /ship/{code}:
+    get:
+      operationId: getShip
+      tags: [ship]
+      summary: Get ship data by code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ship data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ship"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateShip
+      tags: [ship]
+      summary: Update ship data
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShipInput"
+      responses:
+        "200":
+          description: Updated ship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ship"
+
+  /ship/{code}/items:
+    post:
+      operationId: addShipItem
+      tags: [ship]
+      summary: Add item to ship chest
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShipItemInput"
+      responses:
+        "200":
+          description: Updated ship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ship"
+
+  /ship/{code}/buy:
+    post:
+      operationId: buyForShip
+      tags: [ship]
+      summary: Buy an item with ship treasury and add to chest
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShipBuyInput"
+      responses:
+        "200":
+          description: Updated ship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ship"
+        "400":
+          description: Insufficient treasury
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ship/{code}/posters:
+    get:
+      operationId: getShipPosters
+      tags: [ship]
+      summary: Get all wanted posters for a ship
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of wanted posters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WantedPoster"
+    post:
+      operationId: createWantedPoster
+      tags: [ship]
+      summary: Create a new wanted poster for the ship
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WantedPosterInput"
+      responses:
+        "200":
+          description: Created poster
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WantedPoster"
+
+  /ship/{code}/posters/{posterId}:
+    delete:
+      operationId: deleteWantedPoster
+      tags: [ship]
+      summary: Delete a wanted poster
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: posterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
+  /ship/{code}/items/{itemId}:
+    delete:
+      operationId: removeShipItem
+      tags: [ship]
+      summary: Remove item from ship chest
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated ship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ship"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    DicePool:
+      type: object
+      description: Extra dice purchased with XP for an attribute
+      properties:
+        d4:
+          type: integer
+          default: 0
+        d6:
+          type: integer
+          default: 0
+        d10:
+          type: integer
+          default: 0
+        d20:
+          type: integer
+          default: 0
+      required: [d4, d6, d10, d20]
+
+    AttributeData:
+      type: object
+      properties:
+        value:
+          type: integer
+          default: 0
+        dicePool:
+          $ref: "#/components/schemas/DicePool"
+      required: [value, dicePool]
+
+    XPLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        attribute:
+          type: string
+        diceType:
+          type: string
+        cost:
+          type: integer
+        timestamp:
+          type: string
+      required: [id, attribute, diceType, cost, timestamp]
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [weapon, consumable, tool]
+        damage:
+          type: string
+          description: "Dice notation e.g. 1d6, 1d10"
+        attribute:
+          type: string
+          description: "Attribute key used for attack rolls"
+        effect:
+          type: string
+          description: "Description of item effect"
+        quantity:
+          type: integer
+          minimum: 1
+        equipped:
+          type: boolean
+          default: false
+        rarity:
+          type: string
+          enum: [comum, raro, epico, lendario]
+          description: "Item rarity tier"
+        masterGiven:
+          type: boolean
+          description: "Given by the GM/system, does not cost Berries"
+      required: [id, name, type, quantity, equipped]
+
+    WantedPosterInput:
+      type: object
+      properties:
+        pirateName:
+          type: string
+        nickname:
+          type: string
+        bounty:
+          type: integer
+        photo:
+          type: string
+          description: "Base64-encoded photo"
+      required: [pirateName, bounty]
+
+    WantedPoster:
+      allOf:
+        - $ref: "#/components/schemas/WantedPosterInput"
+        - type: object
+          properties:
+            id:
+              type: string
+            shipCode:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+          required: [id, shipCode, createdAt]
+
+    DevilFruitMove:
+      type: object
+      properties:
+        name:
+          type: string
+        damage:
+          type: string
+          description: "Dice notation e.g. 1d6"
+        description:
+          type: string
+      required: [name]
+
+    DevilFruit:
+      type: object
+      properties:
+        active:
+          type: boolean
+          default: false
+        fruitId:
+          type: string
+          description: "ID from the fruit catalog"
+        type:
+          type: string
+          enum: [Paramecia, Zoan, Logia]
+        name:
+          type: string
+        mastery:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+        moves:
+          type: array
+          items:
+            $ref: "#/components/schemas/DevilFruitMove"
+          maxItems: 3
+      required: [active]
+
+    HakiData:
+      type: object
+      properties:
+        armamentoUnlocked:
+          type: boolean
+          default: false
+        observacaoUnlocked:
+          type: boolean
+          default: false
+        haoshokuUnlocked:
+          type: boolean
+          default: false
+        armamentoActive:
+          type: boolean
+          default: false
+        observacaoActive:
+          type: boolean
+          default: false
+        haoshokuActive:
+          type: boolean
+          default: false
+      required: [armamentoUnlocked, observacaoUnlocked, haoshokuUnlocked, armamentoActive, observacaoActive, haoshokuActive]
+
+    CharacterInput:
+      type: object
+      properties:
+        playerName:
+          type: string
+        pirateName:
+          type: string
+        origin:
+          type: string
+        specialty:
+          type: string
+        vigor:
+          $ref: "#/components/schemas/AttributeData"
+        agility:
+          $ref: "#/components/schemas/AttributeData"
+        cunning:
+          $ref: "#/components/schemas/AttributeData"
+        charisma:
+          $ref: "#/components/schemas/AttributeData"
+        spirit:
+          $ref: "#/components/schemas/AttributeData"
+        maxHp:
+          type: integer
+          default: 10
+        currentHp:
+          type: integer
+          default: 10
+        berries:
+          type: integer
+          default: 0
+        xpTotal:
+          type: integer
+          default: 0
+        logbook:
+          type: string
+          default: ""
+        xpLog:
+          type: array
+          items:
+            $ref: "#/components/schemas/XPLogEntry"
+        inventory:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryItem"
+          default: []
+        photo:
+          type: string
+          description: "Base64-encoded character photo"
+        devilFruit:
+          $ref: "#/components/schemas/DevilFruit"
+        haki:
+          $ref: "#/components/schemas/HakiData"
+        currentStamina:
+          type: integer
+          default: 0
+        skills:
+          type: array
+          items:
+            type: string
+          default: []
+          description: "List of acquired skill IDs"
+      required:
+        - playerName
+        - pirateName
+        - origin
+        - specialty
+        - vigor
+        - agility
+        - cunning
+        - charisma
+        - spirit
+        - maxHp
+        - currentHp
+        - berries
+        - xpTotal
+        - logbook
+        - xpLog
+        - inventory
+
+    Character:
+      allOf:
+        - $ref: "#/components/schemas/CharacterInput"
+        - type: object
+          properties:
+            id:
+              type: integer
+            updatedAt:
+              type: string
+          required: [id, updatedAt]
+
+    ShipItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+      required: [id, name, quantity]
+
+    ShipItemInput:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: integer
+      required: [name, quantity]
+
+    ShipBuyInput:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: integer
+      required: [name, quantity, price]
+
+    ShipInput:
+      type: object
+      properties:
+        name:
+          type: string
+        maxHull:
+          type: integer
+          default: 100
+        currentHull:
+          type: integer
+          default: 100
+        treasury:
+          type: integer
+          default: 0
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShipItem"
+      required: [name, maxHull, currentHull, treasury, items]
+
+    Ship:
+      allOf:
+        - $ref: "#/components/schemas/ShipInput"
+        - type: object
+          properties:
+            code:
+              type: string
+            updatedAt:
+              type: string
+          required: [code, updatedAt]
