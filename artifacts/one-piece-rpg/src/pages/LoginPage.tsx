@@ -161,14 +161,24 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </form>
 
               <div className="text-center">
-                <Button variant="link" className="text-sm text-muted-foreground hover:text-primary">
+                <Button variant="link" className="text-sm text-primary hover:text-primary/80 font-medium">
                   Não tem uma conta? Cadastre-se
                 </Button>
               </div>
 
-              <div className="mt-6 text-center text-sm text-muted-foreground">
-                <p>Mestre: canalhbit@gmail.com</p>
-                <p>Jogadores: Use suas credenciais</p>
+              <div className="mt-8 p-4 bg-muted/50 rounded-lg border border-border/50">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Informações de Acesso:</h4>
+                <div className="space-y-1 text-xs">
+                  <p className="flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 bg-primary rounded-full"></span>
+                    <span className="text-foreground font-medium">Mestre:</span>
+                    <span className="text-primary font-bold">canalhbit@gmail.com</span>
+                  </p>
+                  <p className="flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span className="text-foreground">Jogadores: Use suas credenciais</span>
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
