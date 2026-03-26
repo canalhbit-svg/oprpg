@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut, User, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, signOut, User, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -40,4 +40,4 @@ export const isMaster = (user: User | null) => {
   return user?.email === MASTER_EMAIL;
 };
 
-export { GoogleAuthProvider };
+export { GoogleAuthProvider, signInWithPopup };
